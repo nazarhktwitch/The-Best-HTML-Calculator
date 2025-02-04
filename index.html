@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Advanced Calculator</title>
+  <link rel="icon" href="images/favicon.png">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #74ebd5, #acb6e5);
+      margin: 0;
+    }
+
+    #calculator {
+      background: white;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+      max-width: 450px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #display {
+      width: 100%;
+      padding: 15px;
+      font-size: 1.8em;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      background: #f9f9f9;
+      text-align: right;
+      box-sizing: border-box;
+      min-height: 50px;
+      overflow-x: auto;
+      white-space: nowrap;
+      margin-bottom: 10px
+    }
+
+    .button-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+    }
+
+    button {
+      padding: 20px;
+      font-size: 1.2em;
+      border: none;
+      background: #4caf50;
+      color: white;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    }
+
+    button:hover {
+      background: #45a049;
+      transform: translateY(-3px);
+    }
+
+    .settings {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 15px;
+    }
+
+    .theme-selector {
+      display: flex;
+      gap: 10px;
+    }
+
+    .theme-button {
+      width: 25px;
+      height: 25px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid white;
+    }
+
+    .theme-button.light {
+      background: #f9f9f9;
+    }
+
+    .theme-button.dark {
+      background: #333;
+    }
+
+    .theme-button.blue {
+      background: #007bff;
+    }
+
+    .theme-button.purple {
+      background: #6f42c1;
+    }
+
+    .history {
+      max-height: 200px;
+      overflow-y: auto;
+      background: #f1f1f1;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .checkbox-reset {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <audio id="bg-music" autoplay loop>
+    <source src="bg-song.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+  </audio>
+  <div id="calculator">
+    <div id="display"></div>
+    <div class="button-grid">
+      <button onclick="appendValue('7')">7</button>
+      <button onclick="appendValue('8')">8</button>
+      <button onclick="appendValue('9')">9</button>
+      <button onclick="setOperation('/')">/</button>
+      <button onclick="calculateFactorial()">n!</button>
+
+      <button onclick="appendValue('4')">4</button>
+      <button onclick="appendValue('5')">5</button>
+      <button onclick="appendValue('6')">6</button>
+      <button onclick="setOperation('*')">*</button>
+      <button onclick="calculateLog()">log</button>
+
+      <button onclick="appendValue('1')">1</button>
+      <button onclick="appendValue('2')">2</button>
+      <button onclick="appendValue('3')">3</button>
+      <button onclick="setOperation('-')">-</button>
+      <button onclick="calculateSin()">sin</button>
+
+      <button onclick="appendValue('0')">0</button>
+      <button onclick="appendValue('.')">.</button>
+      <button onclick="calculate()">=</button>
+      <button onclick="setOperation('+')">+</button>
+      <button onclick="calculateCos()">cos</button>
+
+      <button onclick="clearDisplay()" style="grid-column: span 2; background: #f44336;">C</button>
+      <button onclick="calculateSqrt()">√</button>
+      <button onclick="calculatePower()">x²</button>
+      <button onclick="calculateTan()">tan</button>
+
+      <!-- New Buttons for Backspace -->
+      <button onclick="deleteLastChar()">
+        <img src="images/backspace.png" alt="Backspace" style="width: 70px; height: 45px;">
+      </button>
+      <button onclick="deleteLastFunction()">
+        <img src="images/backspace-f.png" alt="Delete Last Function" style="width: 70px; height: 45px;">
+      </button>
+    </div>
+
+    <div class="settings">
+      <span>Theme:</span>
+      <div class="theme-selector">
+        <button class="theme-button light" onclick="setTheme('light')"></button>
+        <button class="theme-button dark" onclick="setTheme('dark')"></button>
+        <button class="theme-button blue" onclick="setTheme('blue')"></button>
+        <button class="theme-button purple" onclick="setTheme('purple')"></button>
+      </div>
+    </div>
+
+    <div class="checkbox-reset">
+      <input type="checkbox" id="resetCheckbox">
+      <label for="resetCheckbox">Auto-reset after operation</label>
+    </div>
+
+    <div id="history" class="history"></div>
+  </div>
+  <script>
+    let currentValue = '';
+    let currentOperation = null;
+    let calculationHistory = [];
+
+    function appendValue(value) {
+      currentValue += value;
+      updateDisplay(currentValue);
+    }
+
+    function setOperation(operation) {
+      if (currentValue === '') return;
+      if (document.getElementById('resetCheckbox').checked) clearDisplay();
+      currentOperation = operation;
+      currentValue += ` ${operation} `;
+      updateDisplay(currentValue);
+    }
+
+    function calculate() {
+      try {
+        let result = eval(currentValue);
+        if (!isFinite(result)) {
+          updateDisplay('<img src="images/infinity.png" alt="Infinity" style="width: 60px; height: 30px;">');
+          return;
+        }
+        currentValue = result.toString();
+        calculationHistory.push(`${currentValue}`);
+        updateDisplay(currentValue);
+        updateHistory();
+        if (document.getElementById('resetCheckbox').checked) clearDisplay();
+      } catch (e) {
+        updateDisplay('Error');
+        currentValue = '';
+      }
+    }
+
+    function deleteLastChar() {
+      currentValue = currentValue.slice(0, -1);
+      updateDisplay(currentValue);
+    }
+
+    function deleteLastFunction() {
+      let valueArray = currentValue.split(' ');
+      if (valueArray.length > 1) {
+        valueArray.pop();
+        currentValue = valueArray.join(' ');
+        updateDisplay(currentValue);
+      }
+    }
+
+    function updateHistory() {
+      const historyElement = document.getElementById('history');
+      historyElement.innerHTML = calculationHistory.map(entry => `<div>${entry}</div>`).join('');
+      historyElement.scrollTop = historyElement.scrollHeight;
+    }
+
+    function clearDisplay() {
+      currentValue = '';
+      currentOperation = null;
+      updateDisplay('');
+    }
+
+    function updateDisplay(value) {
+      const displayElement = document.getElementById('display');
+      displayElement.innerHTML = value;
+    }
+
+    function setTheme(theme) {
+      if (theme === 'light') {
+        document.body.style.background = 'linear-gradient(135deg, #f9f9f9, #f3f4f6)';
+      } else if (theme === 'dark') {
+        document.body.style.background = 'linear-gradient(135deg, #333, #555)';
+      } else if (theme === 'blue') {
+        document.body.style.background = 'linear-gradient(135deg, #007bff, #0056b3)';
+      } else if (theme === 'purple') {
+        document.body.style.background = 'linear-gradient(135deg, #6f42c1, #8e44ad)';
+      }
+    }
+  </script>
+</body>
+</html>
